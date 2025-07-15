@@ -191,39 +191,65 @@ function MessagesInner() {
           </div>
         </div>
         <div className="overflow-y-auto">
-          {chats.map(chat => (
-            <div
-              key={chat._id?._id || chat._id}
-              onClick={() => setSelectedChat({ ...chat, user: chat._id })}
-              className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors ${
-                (selectedChat && selectedChat.user && ((selectedChat.user._id === (chat._id?._id || chat._id))) ? 'bg-violet-50 dark:bg-violet-900/20' : '')
-              }`}
-            >
-              <div className="flex items-center space-x-3">
-                <img
-                  src={chat._id?.avatar || 'https://ui-avatars.com/api/?name=User&background=random'}
-                  alt={chat._id?.name || 'User'}
-                  className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-900 dark:text-white truncate">
-                      {chat._id?.name || 'Unknown User'}
-                    </h3>
-                    <span className="text-xs text-gray-500 flex-shrink-0 ml-2">{chat.timestamp || ''}</span>
+          {search.trim() ? (
+            searching ? (
+              <div className="p-4 text-center text-gray-500">Searching...</div>
+            ) : searchResults.length > 0 ? (
+              searchResults.map(user => (
+                <div
+                  key={user._id}
+                  onClick={() => handleStartChat(user)}
+                  className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors flex items-center space-x-3"
+                >
+                  <img
+                    src={user.avatar || 'https://ui-avatars.com/api/?name=User&background=random'}
+                    alt={user.name || 'User'}
+                    className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                  />
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">{user.name}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">@{user.username}</p>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                    {typeof chat.lastMessage?.content === 'string' ? chat.lastMessage.content : ''}
-                  </p>
                 </div>
-                {chat.unreadCount > 0 && (
-                  <div className="w-6 h-6 bg-violet-500 text-white text-xs rounded-full flex items-center justify-center flex-shrink-0">
-                    {chat.unreadCount}
+              ))
+            ) : (
+              <div className="p-4 text-center text-gray-500">No users found.</div>
+            )
+          ) : (
+            chats.map(chat => (
+              <div
+                key={chat._id?._id || chat._id}
+                onClick={() => setSelectedChat({ ...chat, user: chat._id })}
+                className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors ${
+                  (selectedChat && selectedChat.user && ((selectedChat.user._id === (chat._id?._id || chat._id))) ? 'bg-violet-50 dark:bg-violet-900/20' : '')
+                }`}
+              >
+                <div className="flex items-center space-x-3">
+                  <img
+                    src={chat._id?.avatar || 'https://ui-avatars.com/api/?name=User&background=random'}
+                    alt={chat._id?.name || 'User'}
+                    className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+                        {chat._id?.name || 'Unknown User'}
+                      </h3>
+                      <span className="text-xs text-gray-500 flex-shrink-0 ml-2">{chat.timestamp || ''}</span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                      {typeof chat.lastMessage?.content === 'string' ? chat.lastMessage.content : ''}
+                    </p>
                   </div>
-                )}
+                  {chat.unreadCount > 0 && (
+                    <div className="w-6 h-6 bg-violet-500 text-white text-xs rounded-full flex items-center justify-center flex-shrink-0">
+                      {chat.unreadCount}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 

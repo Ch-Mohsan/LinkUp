@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Camera, ArrowLeft, Save } from 'lucide-react'
+import { Camera, ArrowLeft, Save, User as UserIcon } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../services/api'
 import { motion } from 'framer-motion'
@@ -16,8 +16,8 @@ const EditProfile = () => {
     location: user?.location || '',
     website: user?.website || ''
   })
-  const [profileImage, setProfileImage] = useState(user?.avatar)
-  const [coverImage, setCoverImage] = useState(user?.coverImage)
+  const [profileImage, setProfileImage] = useState(null)
+  const [coverImage, setCoverImage] = useState(null)
   const [profileImagePreview, setProfileImagePreview] = useState(user?.avatar)
   const [coverImagePreview, setCoverImagePreview] = useState(user?.coverImage)
   const [loading, setLoading] = useState(false)
@@ -108,12 +108,16 @@ const EditProfile = () => {
         <div className="card">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Cover Image */}
-            <div className="relative h-48 rounded-t-2xl overflow-hidden">
-              <img
-                src={coverImagePreview || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=300&fit=crop'}
-                alt="Cover"
-                className="w-full h-full object-cover"
-              />
+            <div className="relative h-48 rounded-t-2xl overflow-hidden flex items-center justify-center bg-gray-200 dark:bg-gray-800">
+              {coverImagePreview ? (
+                <img
+                  src={coverImagePreview}
+                  alt="Cover"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-gray-500 dark:text-gray-400 text-lg font-semibold">Add cover image here</span>
+              )}
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                 <label className="cursor-pointer">
                   <input
@@ -132,11 +136,17 @@ const EditProfile = () => {
             {/* Profile Image */}
             <div className="relative -mt-20 px-6">
               <div className="relative inline-block">
-                <img
-                  src={profileImagePreview || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'}
-                  alt="Profile"
-                  className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 shadow-lg object-cover"
-                />
+                {profileImagePreview ? (
+                  <img
+                    src={profileImagePreview}
+                    alt="Profile"
+                    className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 shadow-lg object-cover"
+                  />
+                ) : (
+                  <div className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 shadow-lg bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
+                    <UserIcon size={64} className="text-gray-400" />
+                  </div>
+                )}
                 <label className="absolute -bottom-1 -right-1 w-10 h-10 bg-violet-500 rounded-full flex items-center justify-center text-white hover:bg-violet-600 transition-colors cursor-pointer">
                   <input
                     type="file"
