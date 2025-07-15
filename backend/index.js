@@ -9,13 +9,26 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: [
-    'https://linkupcode-6hb2m4xs2-mohsan-alis-projects-a2ecac61.vercel.app',
-    'https://linkup-git-main-mohsan-alis-projects-a2ecac61.vercel.app',
-    'https://link-up-n13j-git-main-mohsan-alis-projects-a2ecac61.vercel.app',
-    'https://link-up-n13j-1oj5lnthl-mohsan-alis-projects-a2ecac61.vercel.app',
-    'https://link-up-7bgc-git-main-mohsan-alis-projects-a2ecac61.vercel.app'
-  ],
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      'https://mediaapp-production.up.railway.app',
+      'https://linkupcode-6hb2m4xs2-mohsan-alis-projects-a2ecac61.vercel.app',
+      'https://linkup-git-main-mohsan-alis-projects-a2ecac61.vercel.app',
+      'https://link-up-n13j-git-main-mohsan-alis-projects-a2ecac61.vercel.app',
+      'https://link-up-n13j-1oj5lnthl-mohsan-alis-projects-a2ecac61.vercel.app',
+      'https://link-up-7bgc-git-main-mohsan-alis-projects-a2ecac61.vercel.app'
+    ];
+    // Allow all Vercel preview URLs for your project
+    const vercelPreviewRegex = /^https:\/\/link-up-[\w-]+-mohsan-alis-projects-a2ecac61\.vercel\.app$/;
+    if (
+      allowedOrigins.includes(origin) ||
+      vercelPreviewRegex.test(origin)
+    ) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
