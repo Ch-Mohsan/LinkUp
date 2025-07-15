@@ -132,12 +132,14 @@ exports.toggleFollow = async (req, res) => {
       });
 
       // Create notification
-      await Notification.create({
-        recipient: userId,
-        sender: req.user._id,
-        type: 'follow',
-        action: 'started following you'
-      });
+      if (userId !== req.user._id.toString()) {
+        await Notification.create({
+          recipient: userId,
+          sender: req.user._id,
+          type: 'follow',
+          action: 'started following you'
+        });
+      }
 
       res.status(200).json({ 
         message: 'User followed',

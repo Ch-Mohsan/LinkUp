@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Settings, Grid, Bookmark, Heart, Users, MapPin, Link as LinkIcon, Calendar } from 'lucide-react'
+import { Settings, Grid, Bookmark, Heart, Users, MapPin, Link as LinkIcon, Calendar, User as UserIcon } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import PostCard from '../components/PostCard'
 import LoadingSkeleton from '../components/LoadingSkeleton'
@@ -136,13 +136,19 @@ const Profile = () => {
     >
       <div className="space-y-6">
         {/* Cover Image */}
-        <div className="relative h-64 rounded-2xl overflow-hidden">
-          <img
-            src={user.coverImage || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=300&fit=crop'}
-            alt="Cover"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+        <div className="relative h-64 rounded-2xl overflow-hidden bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
+          {user.coverImage ? (
+            <>
+              <img
+                src={user.coverImage}
+                alt="Cover"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+            </>
+          ) : (
+            <span className="text-gray-500 dark:text-gray-400 text-lg font-semibold">Add cover image here</span>
+          )}
         </div>
 
         {/* Profile Info */}
@@ -152,11 +158,17 @@ const Profile = () => {
               <div className="flex flex-col lg:flex-row lg:items-end space-y-4 lg:space-y-0 lg:space-x-6">
                 {/* Profile Photo */}
                 <div className="relative">
-                  <img
-                    src={user.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'}
-                    alt={user.name}
-                    className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 shadow-lg"
-                  />
+                  {user.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt={user.name}
+                      className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 shadow-lg"
+                    />
+                  ) : (
+                    <div className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 shadow-lg bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
+                      <UserIcon size={64} className="text-gray-400" />
+                    </div>
+                  )}
                 </div>
 
                 {/* User Info */}

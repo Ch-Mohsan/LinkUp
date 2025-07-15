@@ -32,13 +32,15 @@ exports.sendMessage = async (req, res) => {
     await newMessage.populate('receiver', 'username name avatar');
 
     // Create notification
-    await Notification.create({
-      recipient: receiverId,
-      sender: req.user._id,
-      type: 'message',
-      message: newMessage._id,
-      action: 'sent you a message'
-    });
+    if (receiverId.toString() !== req.user._id.toString()) {
+      await Notification.create({
+        recipient: receiverId,
+        sender: req.user._id,
+        type: 'message',
+        message: newMessage._id,
+        action: 'sent you a message'
+      });
+    }
 
     res.status(201).json({
       message: 'Message sent successfully',

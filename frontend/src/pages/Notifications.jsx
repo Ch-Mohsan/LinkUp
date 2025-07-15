@@ -2,83 +2,51 @@ import { useState, useEffect } from 'react'
 import { Heart, UserPlus, MessageCircle, ThumbsUp, Bell } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { api } from '../services/api'
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState([])
   const [activeTab, setActiveTab] = useState('all')
+  const [loading, setLoading] = useState(true)
+  const [markingAll, setMarkingAll] = useState(false)
   const navigate = useNavigate()
 
-  // Mock notifications data
-  const mockNotifications = [
-    {
-      id: 1,
-      type: 'like',
-      user: {
-        name: 'Sarah Johnson',
-        username: 'sarahj',
-        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face'
-      },
-      action: 'liked your post',
-      postImage: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=100&h=100&fit=crop',
-      timestamp: '2 minutes ago',
-      isRead: false
-    },
-    {
-      id: 2,
-      type: 'follow',
-      user: {
-        name: 'Mike Chen',
-        username: 'mikechen',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face'
-      },
-      action: 'started following you',
-      timestamp: '1 hour ago',
-      isRead: false
-    },
-    {
-      id: 3,
-      type: 'comment',
-      user: {
-        name: 'Emma Wilson',
-        username: 'emmaw',
-        avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face'
-      },
-      action: 'commented on your post',
-      comment: 'Amazing photo! Love the composition.',
-      postImage: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=100&h=100&fit=crop',
-      timestamp: '3 hours ago',
-      isRead: true
-    },
-    {
-      id: 4,
-      type: 'like',
-      user: {
-        name: 'Alex Rodriguez',
-        username: 'alexr',
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
-      },
-      action: 'liked your post',
-      postImage: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=100&h=100&fit=crop',
-      timestamp: '5 hours ago',
-      isRead: true
-    },
-    {
-      id: 5,
-      type: 'follow',
-      user: {
-        name: 'Lisa Park',
-        username: 'lisap',
-        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face'
-      },
-      action: 'started following you',
-      timestamp: '1 day ago',
-      isRead: true
-    }
-  ]
-
   useEffect(() => {
-    setNotifications(mockNotifications)
-  }, [])
+    setLoading(true)
+    api.notifications.getAll(1, 50, activeTab)
+      .then(data => setNotifications(data.notifications || []))
+      .finally(() => setLoading(false))
+  }, [activeTab])
+
+  const handleMarkAllAsRead = async () => {
+    setMarkingAll(true)
+    await api.notifications.markAllAsRead()
+    // Refetch notifications
+    api.notifications.getAll(1, 50, activeTab)
+      .then(data => setNotifications(data.notifications || []))
+      .finally(() => setMarkingAll(false))
+  }
+
+  const handleNotificationClick = (notification) => {
+    // Mark as read
+    if (!notification.isRead) {
+      api.notifications.markAsRead(notification._id)
+    }
+    // Navigate based on type
+    if (notification.type === 'like' || notification.type === 'comment') {
+      if (notification.post) {
+        navigate(`/post/${notification.post._id}`)
+      }
+    } else if (notification.type === 'follow') {
+      if (notification.sender) {
+        navigate(`/profile/${notification.sender.username}`)
+      }
+    } else if (notification.type === 'message') {
+      if (notification.sender) {
+        navigate(`/messages`)
+      }
+    }
+  }
 
   const getNotificationIcon = (type) => {
     switch (type) {
@@ -98,25 +66,33 @@ const Notifications = () => {
       case 'like':
         return (
           <span>
-            <span className="font-semibold">{notification.user.name}</span> liked your post
+            <span className="font-semibold">{notification.sender?.name || notification.sender?.username}</span> liked your post
           </span>
         )
       case 'follow':
         return (
           <span>
-            <span className="font-semibold">{notification.user.name}</span> started following you
+            <span className="font-semibold">{notification.sender?.name || notification.sender?.username}</span> started following you
           </span>
         )
       case 'comment':
         return (
           <div>
             <span>
-              <span className="font-semibold">{notification.user.name}</span> commented on your post
+              <span className="font-semibold">{notification.sender?.name || notification.sender?.username}</span> commented on your post
             </span>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              "{notification.comment}"
-            </p>
+            {notification.comment && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                "{notification.comment.content}"
+              </p>
+            )}
           </div>
+        )
+      case 'message':
+        return (
+          <span>
+            <span className="font-semibold">{notification.sender?.name || notification.sender?.username}</span> sent you a message
+          </span>
         )
       default:
         return notification.action
@@ -134,8 +110,12 @@ const Notifications = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Notifications</h1>
-        <button className="text-violet-600 dark:text-violet-400 hover:underline">
-          Mark all as read
+        <button
+          className="text-violet-600 dark:text-violet-400 hover:underline disabled:opacity-50"
+          onClick={handleMarkAllAsRead}
+          disabled={markingAll}
+        >
+          {markingAll ? 'Marking...' : 'Mark all as read'}
         </button>
       </div>
 
@@ -195,70 +175,48 @@ const Notifications = () => {
           animate="visible"
           variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
         >
-          {filteredNotifications.length > 0 ? (
+          {loading ? (
+            <div className="p-8 text-center text-gray-500">Loading...</div>
+          ) : filteredNotifications.length > 0 ? (
             filteredNotifications.map(notification => (
               <motion.div
-                key={notification.id}
-                variants={{
-                  hidden: { opacity: 0, y: 20 },
-                  visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
-                }}
-                className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
-                  !notification.isRead ? 'bg-violet-50 dark:bg-violet-900/10' : ''
-                } cursor-pointer`}
-                onClick={() => {
-                  if (notification.type === 'like' || notification.type === 'comment') {
-                    // For mock data, use a placeholder postId or notification.id
-                    navigate(`/post/${notification.postId || notification.id}`)
-                  } else if (notification.type === 'follow') {
-                    navigate(`/profile/${notification.user.username}`)
-                  }
-                }}
+                key={notification._id}
+                className={`flex items-center gap-4 px-6 py-5 cursor-pointer transition-colors ${
+                  !notification.isRead ? 'bg-violet-50 dark:bg-violet-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                }`}
+                onClick={() => handleNotificationClick(notification)}
+                whileHover={{ scale: 1.01 }}
               >
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0">
+                <div className="flex-shrink-0">
+                  <img
+                    src={notification.sender?.avatar || 'https://ui-avatars.com/api/?name=User&background=random'}
+                    alt={notification.sender?.name || 'User'}
+                    className="w-12 h-12 rounded-full object-cover"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
                     {getNotificationIcon(notification.type)}
+                    <span className="text-gray-900 dark:text-white text-base">
+                      {getNotificationText(notification)}
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start space-x-3">
-                      <img
-                        src={notification.user.avatar}
-                        alt={notification.user.name}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                      <div className="flex-1">
-                        <div className="text-sm text-gray-900 dark:text-white">
-                          {getNotificationText(notification)}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {notification.timestamp}
-                        </p>
-                      </div>
-                      {notification.postImage && (
-                        <img
-                          src={notification.postImage}
-                          alt="Post"
-                          className="w-12 h-12 rounded-lg object-cover"
-                        />
-                      )}
-                    </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {new Date(notification.createdAt).toLocaleString()}
                   </div>
                 </div>
+                {/* Show post image if available */}
+                {notification.post && notification.post.image && (
+                  <img
+                    src={notification.post.image}
+                    alt="Post"
+                    className="w-14 h-14 rounded-lg object-cover border border-gray-200 dark:border-gray-700"
+                  />
+                )}
               </motion.div>
             ))
           ) : (
-            <div className="text-center py-12">
-              <Bell size={48} className="text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                No notifications
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                {activeTab === 'all' 
-                  ? 'You\'re all caught up!' 
-                  : `No ${activeTab} notifications yet`
-                }
-              </p>
-            </div>
+            <div className="p-8 text-center text-gray-500">No notifications yet.</div>
           )}
         </motion.div>
       </div>

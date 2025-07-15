@@ -13,6 +13,8 @@ import Messages from './pages/Messages'
 import Notifications from './pages/Notifications'
 import EditProfile from './pages/EditProfile'
 import ErrorBoundary from './components/ErrorBoundary'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 function App() {
   return (
@@ -34,6 +36,7 @@ function App() {
                 <Route path="edit-profile" element={<EditProfile />} />
               </Route>
             </Routes>
+            <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
           </div>
         </AuthProvider>
       </ThemeProvider>

@@ -2,18 +2,28 @@ import { NavLink } from 'react-router-dom'
 import { Home, Search, Plus, Heart, User, MessageCircle, Settings, LogOut, Sun, Moon } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
+import { useState, useEffect } from 'react'
+import { api } from '../services/api'
 
-const Sidebar = () => {
+const Sidebar = ({ onNavClick }) => {
   const { user, logout } = useAuth()
   const { isDark, toggleTheme } = useTheme()
-  console.log('Sidebar user:', user)
+  const [unreadMessages, setUnreadMessages] = useState(0)
+  const [unreadNotifications, setUnreadNotifications] = useState(0)
+
+  useEffect(() => {
+    if (user) {
+      api.messages.getUnreadCount().then(res => setUnreadMessages(res.unreadCount || 0)).catch(() => {})
+      api.notifications.getUnreadCount().then(res => setUnreadNotifications(res.unreadCount || 0)).catch(() => {})
+    }
+  }, [user])
 
   const navItems = [
     { to: '/', icon: Home, label: 'Home' },
     { to: '/explore', icon: Search, label: 'Explore' },
     { to: '/create', icon: Plus, label: 'Create Post' },
-    { to: '/messages', icon: MessageCircle, label: 'Messages' },
-    { to: '/notifications', icon: Heart, label: 'Notifications' },
+    { to: '/messages', icon: MessageCircle, label: 'Messages', badge: unreadMessages },
+    { to: '/notifications', icon: Heart, label: 'Notifications', badge: unreadNotifications },
     { to: `/profile/${user?.username}`, icon: User, label: 'Profile' },
   ]
 
@@ -35,20 +45,26 @@ const Sidebar = () => {
 
         {/* Navigation */}
         <nav className="p-0 mt-2 space-y-2">
-          {navItems.map(({ to, icon: Icon, label }) => (
+          {navItems.map(({ to, icon: Icon, label, badge }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) =>
-                `flex items-center space-x-3 px-6 py-3 rounded-xl transition-all duration-200 ${
+                `flex items-center space-x-3 px-6 py-3 rounded-xl transition-all duration-200 relative ${
                   isActive
                     ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`
               }
+              onClick={onNavClick}
             >
               <Icon size={20} />
               <span className="font-medium">{label}</span>
+              {badge > 0 && (
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 bg-violet-500 text-white text-xs rounded-full px-2 py-0.5">
+                  {badge}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>

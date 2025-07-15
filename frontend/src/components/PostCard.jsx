@@ -66,9 +66,20 @@ const PostCard = ({ post, onLike, onSave, onDelete, currentUser }) => {
   }
 
   const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this post?')) {
-      await onDelete(post._id)
-    }
+    toast.info(
+      <div>
+        Are you sure you want to delete this post?
+        <div className="mt-2 flex gap-2 justify-end">
+          <button onClick={async () => {
+            await onDelete(post._id)
+            toast.dismiss()
+            toast.success('Post deleted!')
+          }} className="px-3 py-1 bg-red-500 text-white rounded text-xs">Delete</button>
+          <button onClick={() => toast.dismiss()} className="px-3 py-1 bg-gray-300 text-gray-800 rounded text-xs">Cancel</button>
+        </div>
+      </div>,
+      { autoClose: false, closeOnClick: false, draggable: false }
+    )
     setShowMenu(false)
   }
 
