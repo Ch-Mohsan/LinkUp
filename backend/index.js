@@ -11,7 +11,9 @@ const app = express();
 app.use(cors({
   origin: [
     'https://linkupcode-6hb2m4xs2-mohsan-alis-projects-a2ecac61.vercel.app',
-    
+    'https://linkup-git-main-mohsan-alis-projects-a2ecac61.vercel.app',
+    'https://link-up-n13j-git-main-mohsan-alis-projects-a2ecac61.vercel.app',
+    'https://link-up-n13j-1oj5lnthl-mohsan-alis-projects-a2ecac61.vercel.app'
   ],
   credentials: true
 }));
