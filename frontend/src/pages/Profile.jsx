@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Settings, Grid, Bookmark, Heart, Users, MapPin, Link as LinkIcon, Calendar, User as UserIcon } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import PostCard from '../components/PostCard'
@@ -16,6 +16,7 @@ const Profile = () => {
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('posts')
   const [isFollowing, setIsFollowing] = useState(false)
+  const navigate = useNavigate();
 
   const fetchProfile = async () => {
     try {
@@ -214,7 +215,12 @@ const Profile = () => {
                     >
                       {isFollowing ? 'Unfollow' : 'Follow'}
                     </button>
-                    <button className="btn-secondary">Message</button>
+                    <button
+                      className="btn-secondary"
+                      onClick={() => navigate(`/messages?user=${user._id}`)}
+                    >
+                      Message
+                    </button>
                   </>
                 )}
               </div>
