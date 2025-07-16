@@ -340,7 +340,11 @@ export const api = {
   // Notifications
   notifications: {
     getAll: async (page = 1, limit = 20, type = 'all') => {
-      const response = await fetch(`${API_BASE_URL}/notifications?page=${page}&limit=${limit}&type=${type}`, {
+      let url = `${API_BASE_URL}/notifications?page=${page}&limit=${limit}`;
+      if (type && type !== 'all') {
+        url += `&type=${type}`;
+      }
+      const response = await fetch(url, {
         headers: getHeaders(),
       });
       return handleResponse(response);

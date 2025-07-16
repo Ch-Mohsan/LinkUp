@@ -149,47 +149,51 @@ exports.getPost = async (req, res) => {
 // Like/Unlike a post
 exports.toggleLike = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id);
-    
+    const postId = req.params.id;
+    const userId = req.user._id;
+    let updatedPost;
+    let liked;
+
+    // Check if user already liked the post
+    const post = await Post.findById(postId);
     if (!post) {
       return res.status(404).json({ message: 'Post not found' });
     }
+    const hasLiked = post.likes.some(like => like.toString() === userId.toString());
 
-    const likeIndex = post.likes.indexOf(req.user._id);
-    
-    if (likeIndex > -1) {
-      // Unlike
-      post.likes.splice(likeIndex, 1);
-      await post.save();
-      
-      res.status(200).json({ 
-        message: 'Post unliked',
-        liked: false,
-        likeCount: post.likes.length
-      });
+    if (hasLiked) {
+      // Unlike: remove user from likes
+      updatedPost = await Post.findByIdAndUpdate(
+        postId,
+        { $pull: { likes: userId } },
+        { new: true }
+      );
+      liked = false;
     } else {
-      // Like
-      post.likes.push(req.user._id);
-      await post.save();
-
+      // Like: add user to likes (no duplicates)
+      updatedPost = await Post.findByIdAndUpdate(
+        postId,
+        { $addToSet: { likes: userId } },
+        { new: true }
+      );
+      liked = true;
       // Create notification if not liking own post
-      if (post.author.toString() !== req.user._id.toString()) {
+      if (post.author.toString() !== userId.toString()) {
         await Notification.create({
           recipient: post.author,
-          sender: req.user._id,
+          sender: userId,
           type: 'like',
           post: post._id,
           action: 'liked your post'
         });
       }
-
-      res.status(200).json({ 
-        message: 'Post liked',
-        liked: true,
-        likeCount: post.likes.length
-      });
     }
 
+    res.status(200).json({
+      message: liked ? 'Post liked' : 'Post unliked',
+      liked,
+      likeCount: updatedPost.likes.length
+    });
   } catch (error) {
     console.error('Toggle like error:', error);
     res.status(500).json({

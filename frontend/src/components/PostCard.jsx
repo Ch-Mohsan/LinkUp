@@ -8,7 +8,7 @@ import 'react-toastify/dist/ReactToastify.css'
 import { motion } from 'framer-motion'
 import Picker from '@emoji-mart/react'
 
-const PostCard = ({ post, onLike, onSave, onDelete, currentUser }) => {
+const PostCard = ({ post, onLike, onSave, onDelete, currentUser, likeLoading }) => {
   // Safety check for post data
   if (!post || !post.author) {
     return (
@@ -220,11 +220,12 @@ const PostCard = ({ post, onLike, onSave, onDelete, currentUser }) => {
           <div className="flex items-center space-x-4">
             <button
               onClick={() => onLike(post._id)}
+              disabled={likeLoading}
               className={`p-2 rounded-full transition-all duration-200 ${
                 post.isLiked
                   ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
                   : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
+              } ${likeLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <Heart size={24} className={post.isLiked ? 'fill-current' : ''} />
             </button>

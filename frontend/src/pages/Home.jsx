@@ -13,6 +13,7 @@ const Home = () => {
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [likeLoading, setLikeLoading] = useState({})
   const { user } = useAuth()
 
   const fetchPosts = async (pageNum = 1, append = false) => {
@@ -48,20 +49,23 @@ const Home = () => {
   }
 
   const handleLike = async (postId) => {
+    if (likeLoading[postId]) return;
+    setLikeLoading(prev => ({ ...prev, [postId]: true }));
     try {
-      await api.posts.like(postId)
-      // Update the post in the local state
-      setPosts(posts.map(post => 
-        post._id === postId 
-          ? { 
-              ...post, 
-              isLiked: !post.isLiked, 
-              likes: post.isLiked ? post.likes - 1 : post.likes + 1 
+      const res = await api.posts.like(postId);
+      setPosts(posts.map(post =>
+        post._id === postId
+          ? {
+              ...post,
+              isLiked: res.liked,
+              likes: res.likeCount
             }
           : post
-      ))
+      ));
     } catch (error) {
-      console.error('Failed to like post:', error)
+      console.error('Failed to like post:', error);
+    } finally {
+      setLikeLoading(prev => ({ ...prev, [postId]: false }));
     }
   }
 
@@ -136,6 +140,7 @@ const Home = () => {
               onSave={handleSave}
               onDelete={handleDelete}
               currentUser={user}
+              likeLoading={!!likeLoading[post._id]}
             />
           ))
         )}
