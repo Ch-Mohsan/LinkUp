@@ -1,193 +1,253 @@
-# Social Media Backend API
+# LinkUp Backend API Documentation
 
-A complete Node.js backend for a social media application with JWT authentication, file uploads, and real-time features.
+## Overview
+LinkUp is a social media backend built with Node.js, Express, and MongoDB. It supports user authentication, posts, comments, likes, messaging, notifications, and robust privacy controls (public/private accounts, follow requests, mutual-follow chat).
 
-## Features
-
-- **Authentication**: JWT-based user registration and login
-- **Posts**: Create, read, update, delete posts with image uploads
-- **Comments**: Add, edit, delete comments with nested replies
-- **Messages**: Direct messaging between users
-- **Notifications**: Real-time notifications for likes, follows, comments
-- **User Profiles**: Profile management, following/unfollowing
-- **File Uploads**: Multer middleware for image uploads
-- **Search**: User search functionality
-- **Pagination**: Efficient data loading with pagination
-
-## Tech Stack
-
-- **Node.js** - Runtime environment
-- **Express.js** - Web framework
-- **MongoDB** - Database
-- **Mongoose** - ODM for MongoDB
-- **JWT** - Authentication
-- **Multer** - File uploads
-- **bcryptjs** - Password hashing
-- **CORS** - Cross-origin resource sharing
-
-## Setup Instructions
-
-### 1. Install Dependencies
-
-```bash
-cd backend
-npm install
-```
-
-### 2. Environment Variables
-
-Create a `.env` file in the backend directory:
-
-```env
-# Server Configuration
-PORT=5000
-NODE_ENV=development
-
-# Database Configuration
-MONGODB_URI=mongodb://localhost:27017/social_media_app
-
-# JWT Configuration
-JWT_SECRET=your_jwt_secret_key_here_make_it_long_and_secure
-```
-
-### 3. Database Setup
-
-Make sure MongoDB is running on your system or use MongoDB Atlas.
-
-### 4. Run the Server
-
-```bash
-# Development mode
-npm run dev
-
-# Production mode
-npm start
-```
-
-## API Endpoints
-
-### Authentication
-- `POST /api/auth/register` - Register a new user
-- `POST /api/auth/login` - Login user
-- `GET /api/auth/me` - Get current user (protected)
-- `POST /api/auth/logout` - Logout user (protected)
-
-### Posts
-- `POST /api/posts` - Create a new post (protected)
-- `GET /api/posts` - Get home feed posts (protected)
-- `GET /api/posts/explore` - Get explore posts (protected)
-- `GET /api/posts/:id` - Get single post (protected)
-- `POST /api/posts/:id/like` - Like/unlike post (protected)
-- `DELETE /api/posts/:id` - Delete post (protected)
-- `GET /api/posts/user/:username` - Get user's posts (protected)
-
-### Comments
-- `POST /api/comments/posts/:postId` - Add comment to post (protected)
-- `GET /api/comments/posts/:postId` - Get post comments (protected)
-- `POST /api/comments/:commentId/like` - Like/unlike comment (protected)
-- `PUT /api/comments/:commentId` - Update comment (protected)
-- `DELETE /api/comments/:commentId` - Delete comment (protected)
-- `GET /api/comments/:commentId/replies` - Get comment replies (protected)
-
-### Users
-- `GET /api/users/profile/:username` - Get user profile (protected)
-- `PUT /api/users/profile` - Update profile (protected)
-- `POST /api/users/:userId/follow` - Follow/unfollow user (protected)
-- `GET /api/users/:username/followers` - Get user's followers (protected)
-- `GET /api/users/:username/following` - Get user's following (protected)
-- `GET /api/users/search` - Search users (protected)
-- `GET /api/users/suggested` - Get suggested users (protected)
-
-### Messages
-- `POST /api/messages` - Send message (protected)
-- `GET /api/messages/conversations` - Get all conversations (protected)
-- `GET /api/messages/conversation/:userId` - Get conversation with user (protected)
-- `PUT /api/messages/:userId/read` - Mark messages as read (protected)
-- `DELETE /api/messages/:messageId` - Delete message (protected)
-- `GET /api/messages/unread/count` - Get unread count (protected)
-
-### Notifications
-- `GET /api/notifications` - Get user's notifications (protected)
-- `PUT /api/notifications/:notificationId/read` - Mark notification as read (protected)
-- `PUT /api/notifications/read-all` - Mark all notifications as read (protected)
-- `DELETE /api/notifications/:notificationId` - Delete notification (protected)
-- `GET /api/notifications/unread/count` - Get unread count (protected)
-- `DELETE /api/notifications` - Delete all notifications (protected)
-
-## Database Models
-
-### User
-- username, name, email, password
-- avatar, coverImage, bio, location, website
-- followers[], following[], savedPosts[]
-- isPrivate, isVerified, lastSeen, isOnline
-
-### Post
-- author (ref: User), image, caption
-- likes[] (ref: User), comments[] (ref: Comment)
-- tags[], location, isPublic, viewCount
-
-### Comment
-- author (ref: User), post (ref: Post), content
-- likes[] (ref: User), replies[] (ref: Comment)
-- parentComment (ref: Comment), isEdited
-
-### Message
-- sender (ref: User), receiver (ref: User), content
-- messageType, attachments[], isRead, readAt
-
-### Notification
-- recipient (ref: User), sender (ref: User), type
-- post (ref: Post), comment (ref: Comment), message (ref: Message)
-- action, isRead, readAt
-
-## File Upload
-
-The API supports image uploads for:
-- Post images
-- User avatars
-- User cover images
-
-Files are stored in the `uploads/` directory and served statically.
+---
 
 ## Authentication
 
-All protected routes require a JWT token in the Authorization header:
-```
-Authorization: Bearer <token>
-```
+### Register
+- **POST** `/api/auth/register`
+- **Description:** Register a new user (choose public/private account)
+- **Body:** `{ name, username, email, password, isPrivate }`
+- **Response:** `{ token, user }`
 
-## Error Handling
+### Login
+- **POST** `/api/auth/login`
+- **Description:** Login with email and password
+- **Body:** `{ email, password }`
+- **Response:** `{ token, user }`
 
-The API returns consistent error responses:
-```json
-{
-  "message": "Error description",
-  "error": "Detailed error (development only)"
-}
-```
+### Get Current User
+- **GET** `/api/auth/me`
+- **Auth:** Bearer token required
+- **Response:** `{ user }`
 
-## Development
+### Logout
+- **POST** `/api/auth/logout`
+- **Auth:** Bearer token required
+- **Response:** `{ message }`
 
-```bash
-# Install dependencies
-npm install
+---
 
-# Run in development mode with nodemon
-npm run dev
+## Users
 
-# Run tests (if implemented)
-npm test
-```
+### Search Users
+- **GET** `/api/users/search?q=...`
+- **Auth:** Required
+- **Response:** `{ users: [...] }`
 
-## Production
+### Suggested Users
+- **GET** `/api/users/suggested`
+- **Auth:** Required
+- **Response:** `{ suggestedUsers: [...] }`
 
-```bash
-# Install dependencies
-npm install --production
+### Get User Profile
+- **GET** `/api/users/profile/:username`
+- **Auth:** Required
+- **Response:** `{ user }`
+- **Note:** If the user is private and you are not a mutual follower, only minimal info is returned and posts are hidden.
 
-# Start the server
-npm start
-```
+### Update Profile
+- **PUT** `/api/users/profile`
+- **Auth:** Required
+- **Body:** `FormData` (fields: name, username, email, bio, location, website, isPrivate, avatar, coverImage)
+- **Response:** `{ user }`
 
-Make sure to set appropriate environment variables for production. 
+### Follow/Unfollow
+- **POST** `/api/users/:userId/follow`
+- **Auth:** Required
+- **Response:** `{ message, following?, followRequest? }`
+- **Note:** If the target is private, a follow request is sent instead of following directly.
+
+### Get Followers
+- **GET** `/api/users/:username/followers`
+- **Auth:** Required
+- **Response:** `{ followers: [...] }`
+
+### Get Following
+- **GET** `/api/users/:username/following`
+- **Auth:** Required
+- **Response:** `{ following: [...] }`
+
+### Follow Requests (Private Accounts)
+- **GET** `/api/users/follow-requests`
+- **Auth:** Required
+- **Response:** `{ followRequests: [...] }`
+
+- **POST** `/api/users/follow-requests/:requesterId/respond`
+- **Auth:** Required
+- **Body:** `{ action: 'accept' | 'reject' }`
+- **Response:** `{ message }`
+
+---
+
+## Posts
+
+### Create Post
+- **POST** `/api/posts/`
+- **Auth:** Required
+- **Body:** `FormData` (image required, caption, tags, location)
+- **Response:** `{ post }`
+
+### Get Home Feed
+- **GET** `/api/posts/`
+- **Auth:** Required
+- **Response:** `{ posts: [...] }`
+
+### Get Explore Posts
+- **GET** `/api/posts/explore`
+- **Auth:** Required
+- **Response:** `{ posts: [...] }`
+
+### Get User's Posts
+- **GET** `/api/posts/user/:username`
+- **Auth:** Required
+- **Response:** `{ posts: [...] }`
+- **Note:** If the user is private and you are not a mutual follower, returns 403.
+
+### Get Single Post
+- **GET** `/api/posts/:id`
+- **Auth:** Required
+- **Response:** `{ post }`
+
+### Like/Unlike Post
+- **POST** `/api/posts/:id/like`
+- **Auth:** Required
+- **Response:** `{ liked, likeCount }`
+
+### Delete Post
+- **DELETE** `/api/posts/:id`
+- **Auth:** Required
+- **Response:** `{ message }`
+
+### Edit Post
+- **PUT** `/api/posts/:id`
+- **Auth:** Required
+- **Body:** `{ caption, tags, location }`
+- **Response:** `{ post }`
+
+---
+
+## Comments
+
+### Add Comment
+- **POST** `/api/comments/posts/:postId`
+- **Auth:** Required
+- **Body:** `{ content, parentCommentId? }`
+- **Response:** `{ comment }`
+
+### Get Comments
+- **GET** `/api/comments/posts/:postId`
+- **Auth:** Required
+- **Response:** `{ comments: [...] }`
+
+### Like/Unlike Comment
+- **POST** `/api/comments/:commentId/like`
+- **Auth:** Required
+- **Response:** `{ liked, likeCount }`
+
+### Update Comment
+- **PUT** `/api/comments/:commentId`
+- **Auth:** Required
+- **Body:** `{ content }`
+- **Response:** `{ comment }`
+
+### Delete Comment
+- **DELETE** `/api/comments/:commentId`
+- **Auth:** Required
+- **Response:** `{ message }`
+
+### Get Replies
+- **GET** `/api/comments/:commentId/replies`
+- **Auth:** Required
+- **Response:** `{ replies: [...] }`
+
+---
+
+## Messages
+
+### Send Message
+- **POST** `/api/messages/`
+- **Auth:** Required
+- **Body:** `{ receiverId, content, messageType? }`
+- **Response:** `{ messageData }`
+- **Note:** Only mutual followers can chat. 403 if not allowed.
+
+### Get All Conversations
+- **GET** `/api/messages/conversations`
+- **Auth:** Required
+- **Response:** `{ conversations: [...] }`
+
+### Get Unread Message Count
+- **GET** `/api/messages/unread/count`
+- **Auth:** Required
+- **Response:** `{ unreadCount }`
+
+### Get Conversation With User
+- **GET** `/api/messages/conversation/:userId`
+- **Auth:** Required
+- **Response:** `{ messages: [...] }`
+- **Note:** Only mutual followers can chat. 403 if not allowed.
+
+### Mark Messages as Read
+- **PUT** `/api/messages/:userId/read`
+- **Auth:** Required
+- **Response:** `{ message }`
+
+### Delete Message
+- **DELETE** `/api/messages/:messageId`
+- **Auth:** Required
+- **Response:** `{ message }`
+
+### Edit Message
+- **PUT** `/api/messages/:messageId`
+- **Auth:** Required
+- **Body:** `{ content }`
+- **Response:** `{ messageData }`
+
+---
+
+## Notifications
+
+### Get Notifications
+- **GET** `/api/notifications/`
+- **Auth:** Required
+- **Response:** `{ notifications: [...] }`
+
+### Mark All As Read
+- **PUT** `/api/notifications/read-all`
+- **Auth:** Required
+- **Response:** `{ message }`
+
+### Get Unread Notification Count
+- **GET** `/api/notifications/unread/count`
+- **Auth:** Required
+- **Response:** `{ unreadCount }`
+
+### Mark Notification As Read
+- **PUT** `/api/notifications/:notificationId/read`
+- **Auth:** Required
+- **Response:** `{ message, notification }`
+
+### Delete Notification
+- **DELETE** `/api/notifications/:notificationId`
+- **Auth:** Required
+- **Response:** `{ message }`
+
+### Delete All Notifications
+- **DELETE** `/api/notifications/`
+- **Auth:** Required
+- **Response:** `{ message }`
+
+---
+
+## Special Logic & Notes
+- **Private Accounts:** Only mutual followers can view posts, profile, and chat. Others see only minimal info and can send follow requests.
+- **Follow Requests:** Private users must accept follow requests before others can follow, view posts, or chat.
+- **Access Control:** All endpoints enforce authentication and privacy rules. 403 errors are returned if access is denied.
+
+---
+
+For more details, see the controller files or contact the project maintainer. 
