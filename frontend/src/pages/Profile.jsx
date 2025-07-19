@@ -20,13 +20,14 @@ const Profile = () => {
   const [followRequestSent, setFollowRequestSent] = useState(false)
   const [isMutual, setIsMutual] = useState(false)
   const [followRequests, setFollowRequests] = useState([])
+  const [privateRestricted, setPrivateRestricted] = useState(false)
   const navigate = useNavigate();
 
   const fetchProfile = async () => {
     try {
       setLoading(true)
       setError('')
-      
+      setPrivateRestricted(false)
       const [profileData, postsData] = await Promise.all([
         api.users.getProfile(username),
         api.posts.getUserPosts(username, 1, 10)
@@ -52,7 +53,11 @@ const Profile = () => {
         setFollowRequests(res.followRequests || [])
       }
     } catch (error) {
-      setError(error.message || 'Failed to load profile')
+      if (error.response && error.response.status === 403) {
+        setPrivateRestricted(true)
+      } else {
+        setError(error.message || 'Failed to load profile')
+      }
     } finally {
       setLoading(false)
     }
@@ -136,6 +141,44 @@ const Profile = () => {
   }
 
   console.log('Profile page user:', user)
+
+  if (privateRestricted && user) {
+    // Show only minimal info and follow/request button
+    const isOwnProfile = currentUser?.username === username;
+    return (
+      <div className="max-w-xl mx-auto mt-12 card p-8 text-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="relative">
+            {user.avatar ? (
+              <img
+                src={user.avatar}
+                alt={user.name}
+                className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 shadow-lg"
+              />
+            ) : (
+              <div className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 shadow-lg bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
+                <UserIcon size={64} className="text-gray-400" />
+              </div>
+            )}
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{user.name}</h1>
+          <p className="text-gray-600 dark:text-gray-400">@{user.username}</p>
+          {!isOwnProfile && (
+            <div className="flex gap-2 mt-2">
+              {followRequestSent ? (
+                <button className="btn-secondary" disabled>Request Sent</button>
+              ) : (
+                <button className="btn-primary" onClick={handleFollow}>Follow</button>
+              )}
+            </div>
+          )}
+          <div className="mt-6 text-gray-500 dark:text-gray-400">
+            This account is private. Only mutual followers can view posts and chat.
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (error) {
     return (

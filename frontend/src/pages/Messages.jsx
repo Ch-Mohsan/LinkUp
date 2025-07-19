@@ -48,6 +48,7 @@ function MessagesInner() {
   const menuRef = useRef(null)
   const isMobile = useIsMobile();
   const [showChatMobile, setShowChatMobile] = useState(false);
+  const [chatRestricted, setChatRestricted] = useState(false)
 
   // Fetch conversations from backend
   useEffect(() => {
@@ -57,7 +58,14 @@ function MessagesInner() {
   // Fetch messages for selected chat
   useEffect(() => {
     if (selectedChat && selectedChat.user && selectedChat.user._id) {
-      api.messages.getConversation(selectedChat.user._id).then(data => setMessages(data.messages || []))
+      setChatRestricted(false)
+      api.messages.getConversation(selectedChat.user._id)
+        .then(data => setMessages(data.messages || []))
+        .catch(error => {
+          if (error.response && error.response.status === 403) {
+            setChatRestricted(true)
+          }
+        })
     }
   }, [selectedChat])
 
@@ -100,11 +108,19 @@ function MessagesInner() {
 
   const handleSendMessage = async (e) => {
     e.preventDefault()
+    if (chatRestricted) return
     if (message.trim() && selectedChat && selectedChat.user && selectedChat.user._id) {
-      await api.messages.send(selectedChat.user._id, message)
-      setMessage('')
-      // Refetch messages after sending
-      api.messages.getConversation(selectedChat.user._id).then(data => setMessages(data.messages || []))
+      try {
+        await api.messages.send(selectedChat.user._id, message)
+        setMessage('')
+        // Refetch messages after sending
+        api.messages.getConversation(selectedChat.user._id).then(data => setMessages(data.messages || []))
+      } catch (error) {
+        if (error.response && error.response.status === 403) {
+          setChatRestricted(true)
+          toast.info('You can only chat with users who follow you back.')
+        }
+      }
     }
   }
 
@@ -292,177 +308,186 @@ function MessagesInner() {
               <span className="font-semibold text-lg text-gray-900 dark:text-white">Chat</span>
       </div>
           )}
-        {/* Chat Header */}
-          <div className="h-16 flex items-center border-b border-gray-200 dark:border-gray-700 px-6 flex-shrink-0">
-            <img
-              src={selectedChat.user?.avatar || 'https://ui-avatars.com/api/?name=User&background=random'}
-              alt={selectedChat.user?.name || 'User'}
-              className="w-10 h-10 rounded-full object-cover mr-3 flex-shrink-0"
-            />
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-gray-900 dark:text-white truncate">
-                {selectedChat.user?.name || 'User'}
-              </h3>
-              <p className="text-sm text-gray-500 truncate">
-                {selectedChat.user?.isOnline ? 'Online' : 'Offline'}
-              </p>
-            </div>
-            <div className="flex items-center space-x-2 flex-shrink-0">
-              <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
-                <Phone size={20} className="text-gray-500" />
-              </button>
-              <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
-                <Video size={20} className="text-gray-500" />
-              </button>
-              <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
-                <MoreVertical size={20} className="text-gray-500" />
-              </button>
-            </div>
-          </div>
-
-        {/* Message List */}
-        <div
-            className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-4 min-h-0 relative"
-          ref={messageListRef}
-          onScroll={handleScroll}
-        >
-          {selectedChat && selectedChat.user && messages.length > 0 ? (
-              <div className="flex flex-col space-y-4">
-              {messages.map(msg => {
-                const isSender = msg.sender && currentUser && msg.sender._id === currentUser._id;
-                return (
-                  <div
-                    key={msg._id}
-                      className={`flex items-start group relative w-full ${isSender ? 'justify-end' : 'justify-start'}`}
-                  >
-                      <div className={`flex items-end gap-2 max-w-[70%] ${isSender ? 'flex-row-reverse' : ''}`}>
-                      <img
-                        src={msg.sender.avatar || 'https://ui-avatars.com/api/?name=User&background=random'}
-                        alt={msg.sender.name || 'User'}
-                          className="w-8 h-8 rounded-full object-cover shadow flex-shrink-0"
-                      />
-                      <div className="relative">
-                        <div
-                            className={`px-4 py-2 rounded-2xl break-words whitespace-pre-wrap shadow ${
-                            isSender
-                              ? 'bg-violet-500 text-white'
-                                : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
-                          }`}
-                        >
-                          {editingMsgId === msg._id ? (
-                            <form onSubmit={e => handleEditMsgSubmit(e, msg._id)}>
-                                <textarea
-                                  className="w-full p-2 rounded border bg-white dark:bg-gray-800 text-gray-900 dark:text-white mb-2 resize-none"
-                                value={editMsgContent}
-                                onChange={e => setEditMsgContent(e.target.value)}
-                                disabled={editMsgLoading}
-                                maxLength={2000}
-                                autoFocus
-                                  rows={3}
-                              />
-                              <div className="flex gap-2 justify-end">
-                                  <button 
-                                    type="button" 
-                                    className="px-3 py-1 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded text-sm hover:bg-gray-400 dark:hover:bg-gray-500" 
-                                    onClick={() => setEditingMsgId(null)}
-                                  >
-                                    Cancel
-                                  </button>
-                                  <button 
-                                    type="submit" 
-                                    className="px-3 py-1 bg-violet-500 text-white rounded text-sm hover:bg-violet-600 disabled:opacity-50" 
-                                    disabled={editMsgLoading}
-                                  >
-                                    {editMsgLoading ? 'Saving...' : 'Save'}
-                                  </button>
-                              </div>
-                            </form>
-                          ) : (
-                            <>
-                                <span className="block">{msg.content}</span>
-                                {msg.isEdited && <span className="text-xs opacity-70 block mt-1">(edited)</span>}
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                      
-                      {/* Three dots menu for sender's messages */}
-                      <div className="relative">
-                        <button
-                          className="ml-2 opacity-100 transition-opacity p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                          onClick={() => setShowMenu(showMenu === msg._id ? null : msg._id)}
-                        >
-                          <MoreHorizontal size={16} className="text-gray-500" />
-                        </button>
-                        {/* Dropdown menu */}
-                        {showMenu === msg._id && (
-                          <div ref={menuRef} className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 shadow-lg rounded-lg z-10 border border-gray-200 dark:border-gray-700 min-w-[120px]">
-                    {isSender && (
-                      <button
-                                onClick={() => { setShowMenu(null); handleEditMsg(msg); }} 
-                                className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm flex items-center gap-2"
-                      >
-                                <Edit2 size={14} />
-                                Edit
-                      </button>
-                    )}
-                            <button 
-                              onClick={() => { setShowMenu(null); handleDeleteMsg(msg); }} 
-                              className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm flex items-center gap-2"
-                            >
-                              <Trash2 size={14} />
-                              Delete
-                            </button>
-                      </div>
-                    )}
-                      </div>
-                  </div>
-                );
-              })}
+          {/* If chat is restricted, show message and hide chat UI */}
+          {chatRestricted ? (
+            <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400 text-center p-8">
+              You can only chat with users who follow you back.
             </div>
           ) : (
-              <div className="flex items-center justify-center h-full text-center text-gray-500">
-                <div>
-                  <p className="text-lg mb-2">No messages yet</p>
-                  <p className="text-sm">Say hello to start the conversation!</p>
+            <>
+              {/* Chat Header */}
+              <div className="h-16 flex items-center border-b border-gray-200 dark:border-gray-700 px-6 flex-shrink-0">
+                <img
+                  src={selectedChat.user?.avatar || 'https://ui-avatars.com/api/?name=User&background=random'}
+                  alt={selectedChat.user?.name || 'User'}
+                  className="w-10 h-10 rounded-full object-cover mr-3 flex-shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+                    {selectedChat.user?.name || 'User'}
+                  </h3>
+                  <p className="text-sm text-gray-500 truncate">
+                    {selectedChat.user?.isOnline ? 'Online' : 'Offline'}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2 flex-shrink-0">
+                  <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+                    <Phone size={20} className="text-gray-500" />
+                  </button>
+                  <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+                    <Video size={20} className="text-gray-500" />
+                  </button>
+                  <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+                    <MoreVertical size={20} className="text-gray-500" />
+                  </button>
                 </div>
               </div>
-            )}
-            
-          <div ref={messagesEndRef} />
-            
-          {showScrollDown && (
-            <button
-              onClick={scrollToBottom}
-                className="fixed bottom-28 right-8 z-50 bg-violet-500 hover:bg-violet-600 text-white p-3 rounded-full shadow-lg transition-all"
-              title="Scroll to bottom"
-            >
-              <ArrowDown size={20} />
-            </button>
-          )}
-        </div>
 
-        {/* Input Bar */}
-          <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex-shrink-0">
-            <form onSubmit={handleSendMessage} className="flex items-center gap-3">
-          <input
-            type="text"
-            value={message}
-            onChange={e => setMessage(e.target.value)}
-            placeholder="Type a message..."
-                className="flex-1 rounded-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border-none outline-none text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500"
-                maxLength={2000}
-          />
-          <button
-            type="submit"
-                className="p-2 rounded-full bg-violet-500 hover:bg-violet-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-            disabled={!message.trim()}
-          >
-                <Send size={20} />
-          </button>
-        </form>
-      </div>
+              {/* Message List */}
+              <div
+                  className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-4 min-h-0 relative"
+                ref={messageListRef}
+                onScroll={handleScroll}
+              >
+                {selectedChat && selectedChat.user && messages.length > 0 ? (
+                    <div className="flex flex-col space-y-4">
+                    {messages.map(msg => {
+                      const isSender = msg.sender && currentUser && msg.sender._id === currentUser._id;
+                      return (
+                        <div
+                          key={msg._id}
+                            className={`flex items-start group relative w-full ${isSender ? 'justify-end' : 'justify-start'}`}
+                        >
+                            <div className={`flex items-end gap-2 max-w-[70%] ${isSender ? 'flex-row-reverse' : ''}`}>
+                            <img
+                              src={msg.sender.avatar || 'https://ui-avatars.com/api/?name=User&background=random'}
+                              alt={msg.sender.name || 'User'}
+                                className="w-8 h-8 rounded-full object-cover shadow flex-shrink-0"
+                            />
+                            <div className="relative">
+                              <div
+                                  className={`px-4 py-2 rounded-2xl break-words whitespace-pre-wrap shadow ${
+                                  isSender
+                                    ? 'bg-violet-500 text-white'
+                                      : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
+                                }`}
+                              >
+                                {editingMsgId === msg._id ? (
+                                  <form onSubmit={e => handleEditMsgSubmit(e, msg._id)}>
+                                      <textarea
+                                        className="w-full p-2 rounded border bg-white dark:bg-gray-800 text-gray-900 dark:text-white mb-2 resize-none"
+                                      value={editMsgContent}
+                                      onChange={e => setEditMsgContent(e.target.value)}
+                                      disabled={editMsgLoading}
+                                      maxLength={2000}
+                                      autoFocus
+                                        rows={3}
+                                    />
+                                    <div className="flex gap-2 justify-end">
+                                        <button 
+                                          type="button" 
+                                          className="px-3 py-1 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded text-sm hover:bg-gray-400 dark:hover:bg-gray-500" 
+                                          onClick={() => setEditingMsgId(null)}
+                                        >
+                                          Cancel
+                                        </button>
+                                        <button 
+                                          type="submit" 
+                                          className="px-3 py-1 bg-violet-500 text-white rounded text-sm hover:bg-violet-600 disabled:opacity-50" 
+                                          disabled={editMsgLoading}
+                                        >
+                                          {editMsgLoading ? 'Saving...' : 'Save'}
+                                        </button>
+                                    </div>
+                                  </form>
+                                ) : (
+                                  <>
+                                      <span className="block">{msg.content}</span>
+                                      {msg.isEdited && <span className="text-xs opacity-70 block mt-1">(edited)</span>}
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                            
+                            {/* Three dots menu for sender's messages */}
+                            <div className="relative">
+                              <button
+                                className="ml-2 opacity-100 transition-opacity p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                onClick={() => setShowMenu(showMenu === msg._id ? null : msg._id)}
+                              >
+                                <MoreHorizontal size={16} className="text-gray-500" />
+                              </button>
+                              {/* Dropdown menu */}
+                              {showMenu === msg._id && (
+                                <div ref={menuRef} className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 shadow-lg rounded-lg z-10 border border-gray-200 dark:border-gray-700 min-w-[120px]">
+                          {isSender && (
+                            <button
+                                      onClick={() => { setShowMenu(null); handleEditMsg(msg); }} 
+                                      className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm flex items-center gap-2"
+                            >
+                                      <Edit2 size={14} />
+                                      Edit
+                            </button>
+                          )}
+                              <button 
+                                onClick={() => { setShowMenu(null); handleDeleteMsg(msg); }} 
+                                className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm flex items-center gap-2"
+                              >
+                                <Trash2 size={14} />
+                                Delete
+                              </button>
+                        </div>
+                              )}
+                            </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                    <div className="flex items-center justify-center h-full text-center text-gray-500">
+                      <div>
+                        <p className="text-lg mb-2">No messages yet</p>
+                        <p className="text-sm">Say hello to start the conversation!</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                <div ref={messagesEndRef} />
+                  
+                {showScrollDown && (
+                  <button
+                    onClick={scrollToBottom}
+                      className="fixed bottom-28 right-8 z-50 bg-violet-500 hover:bg-violet-600 text-white p-3 rounded-full shadow-lg transition-all"
+                    title="Scroll to bottom"
+                  >
+                    <ArrowDown size={20} />
+                  </button>
+                )}
+              </div>
+
+              {/* Input Bar */}
+                <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex-shrink-0">
+                  <form onSubmit={handleSendMessage} className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={message}
+                  onChange={e => setMessage(e.target.value)}
+                  placeholder="Type a message..."
+                      className="flex-1 rounded-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border-none outline-none text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-violet-500"
+                      maxLength={2000}
+                />
+                <button
+                  type="submit"
+                      className="p-2 rounded-full bg-violet-500 hover:bg-violet-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                  disabled={!message.trim()}
+                >
+                      <Send size={20} />
+                </button>
+              </form>
+            </div>
+            </>
+          )}
         </div>
       )}
     </div>
