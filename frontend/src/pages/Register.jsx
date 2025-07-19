@@ -10,7 +10,8 @@ const Register = () => {
     username: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    isPrivate: false
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -31,7 +32,8 @@ const Register = () => {
         name: formData.name,
         username: formData.username,
         email: formData.email,
-        password: formData.password
+        password: formData.password,
+        isPrivate: formData.isPrivate
       }
 
       const result = await register(userData)
@@ -188,6 +190,42 @@ const Register = () => {
                     {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
+              </div>
+
+              {/* Account Privacy Toggle */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Account Privacy
+                </label>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="privacy"
+                      checked={!formData.isPrivate}
+                      onChange={() => setFormData({ ...formData, isPrivate: false })}
+                      className="form-radio text-violet-500 focus:ring-violet-500"
+                      disabled={loading}
+                    />
+                    <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Public</span>
+                  </label>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="privacy"
+                      checked={formData.isPrivate}
+                      onChange={() => setFormData({ ...formData, isPrivate: true })}
+                      className="form-radio text-violet-500 focus:ring-violet-500"
+                      disabled={loading}
+                    />
+                    <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Private</span>
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {formData.isPrivate
+                    ? 'Only approved followers can see your posts and profile.'
+                    : 'Anyone can see your posts and profile.'}
+                </p>
               </div>
 
               <div className="flex items-center">

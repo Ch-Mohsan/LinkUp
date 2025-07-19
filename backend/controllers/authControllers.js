@@ -9,7 +9,7 @@ const generateToken = (userId) => {
 };
 
 exports.registerUser = async (req, res) => {
-  const { username, name, email, password } = req.body;
+  const { username, name, email, password, isPrivate } = req.body;
   
   try {
     // Check if user already exists
@@ -30,7 +30,8 @@ exports.registerUser = async (req, res) => {
       username, 
       name, 
       email, 
-      password 
+      password,
+      isPrivate: typeof isPrivate === 'boolean' ? isPrivate : false
     });
     
     await newUser.save();

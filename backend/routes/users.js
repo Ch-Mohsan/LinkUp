@@ -26,4 +26,10 @@ router.get('/:username/followers', userControllers.getFollowers);
 // Get user's following
 router.get('/:username/following', userControllers.getFollowing);
 
+// Get pending follow requests for the logged-in user
+router.get('/follow-requests', userControllers.getFollowRequests);
+
+// Accept or reject a follow request
+router.post('/follow-requests/:requesterId/respond', userControllers.respondToFollowRequest);
+
 module.exports = router; 

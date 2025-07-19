@@ -14,7 +14,8 @@ const EditProfile = () => {
     email: user?.email || '',
     bio: user?.bio || '',
     location: user?.location || '',
-    website: user?.website || ''
+    website: user?.website || '',
+    isPrivate: user?.isPrivate || false
   })
   const [profileImage, setProfileImage] = useState(null)
   const [coverImage, setCoverImage] = useState(null)
@@ -34,6 +35,7 @@ const EditProfile = () => {
       form.append('bio', formData.bio)
       form.append('location', formData.location)
       form.append('website', formData.website)
+      form.append('isPrivate', formData.isPrivate)
       if (profileImage && profileImage instanceof File) {
         form.append('avatar', profileImage)
       }
@@ -110,11 +112,11 @@ const EditProfile = () => {
             {/* Cover Image */}
             <div className="relative h-48 rounded-t-2xl overflow-hidden flex items-center justify-center bg-gray-200 dark:bg-gray-800">
               {coverImagePreview ? (
-                <img
+              <img
                   src={coverImagePreview}
-                  alt="Cover"
-                  className="w-full h-full object-cover"
-                />
+                alt="Cover"
+                className="w-full h-full object-cover"
+              />
               ) : (
                 <span className="text-gray-500 dark:text-gray-400 text-lg font-semibold">Add cover image here</span>
               )}
@@ -137,11 +139,11 @@ const EditProfile = () => {
             <div className="relative -mt-20 px-6">
               <div className="relative inline-block">
                 {profileImagePreview ? (
-                  <img
+                <img
                     src={profileImagePreview}
-                    alt="Profile"
-                    className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 shadow-lg object-cover"
-                  />
+                  alt="Profile"
+                  className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 shadow-lg object-cover"
+                />
                 ) : (
                   <div className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 shadow-lg bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
                     <UserIcon size={64} className="text-gray-400" />
@@ -244,8 +246,44 @@ const EditProfile = () => {
                   value={formData.website}
                   onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                   className="input-field"
-                  placeholder="https://yourwebsite.com"
+                  placeholder="Your website (optional)"
                 />
+              </div>
+
+              {/* Account Privacy Toggle */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Account Privacy
+                </label>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="privacy"
+                      checked={!formData.isPrivate}
+                      onChange={() => setFormData({ ...formData, isPrivate: false })}
+                      className="form-radio text-violet-500 focus:ring-violet-500"
+                      disabled={loading}
+                    />
+                    <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Public</span>
+                  </label>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="privacy"
+                      checked={formData.isPrivate}
+                      onChange={() => setFormData({ ...formData, isPrivate: true })}
+                      className="form-radio text-violet-500 focus:ring-violet-500"
+                      disabled={loading}
+                    />
+                    <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Private</span>
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {formData.isPrivate
+                    ? 'Only approved followers can see your posts and profile.'
+                    : 'Anyone can see your posts and profile.'}
+                </p>
               </div>
             </div>
           </form>

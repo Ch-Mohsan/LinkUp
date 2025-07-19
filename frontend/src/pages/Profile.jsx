@@ -6,6 +6,7 @@ import PostCard from '../components/PostCard'
 import LoadingSkeleton from '../components/LoadingSkeleton'
 import { api } from '../services/api'
 import { motion } from 'framer-motion'
+import { toast } from 'react-toastify'
 
 const Profile = () => {
   const { username } = useParams()
@@ -16,6 +17,9 @@ const Profile = () => {
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('posts')
   const [isFollowing, setIsFollowing] = useState(false)
+  const [followRequestSent, setFollowRequestSent] = useState(false)
+  const [isMutual, setIsMutual] = useState(false)
+  const [followRequests, setFollowRequests] = useState([])
   const navigate = useNavigate();
 
   const fetchProfile = async () => {
@@ -31,6 +35,22 @@ const Profile = () => {
       setUser(profileData.user)
       setPosts(postsData.posts)
       setIsFollowing(profileData.user.followers?.includes(currentUser?._id) || false)
+      // Check if follow request sent
+      if (profileData.user.followRequests?.includes(currentUser?._id)) {
+        setFollowRequestSent(true)
+      } else {
+        setFollowRequestSent(false)
+      }
+      // Check if mutual
+      setIsMutual(
+        profileData.user.followers?.includes(currentUser?._id) &&
+        profileData.user.following?.includes(currentUser?._id)
+      )
+      // If own private profile, fetch follow requests
+      if (currentUser?.username === username && profileData.user.isPrivate) {
+        const res = await api.users.getFollowRequests()
+        setFollowRequests(res.followRequests || [])
+      }
     } catch (error) {
       setError(error.message || 'Failed to load profile')
     } finally {
@@ -46,16 +66,32 @@ const Profile = () => {
 
   const handleFollow = async () => {
     try {
-      await api.users.follow(user._id)
-      setIsFollowing(!isFollowing)
-      // Update follower count
-      setUser(prev => ({
-        ...prev,
-        followers: isFollowing ? prev.followers - 1 : prev.followers + 1
-      }))
+      const res = await api.users.follow(user._id)
+      if (res.followRequest) {
+        setFollowRequestSent(true)
+        toast.info('Follow request sent!')
+      } else {
+        setIsFollowing(!isFollowing)
+        setUser(prev => ({
+          ...prev,
+          followers: isFollowing ? prev.followers - 1 : prev.followers + 1
+        }))
+      }
     } catch (error) {
       console.error('Failed to follow/unfollow:', error)
     }
+  }
+
+  const handleAcceptRequest = async (requesterId) => {
+    await api.users.respondToFollowRequest(requesterId, 'accept')
+    setFollowRequests(followRequests.filter(u => u._id !== requesterId))
+    toast.success('Follow request accepted!')
+  }
+
+  const handleRejectRequest = async (requesterId) => {
+    await api.users.respondToFollowRequest(requesterId, 'reject')
+    setFollowRequests(followRequests.filter(u => u._id !== requesterId))
+    toast.info('Follow request rejected.')
   }
 
   const handleLike = async (postId) => {
@@ -209,15 +245,31 @@ const Profile = () => {
                   </Link>
                 ) : (
                   <>
-                    <button 
-                      onClick={handleFollow}
-                      className={`${isFollowing ? 'btn-secondary' : 'btn-primary'}`}
-                    >
-                      {isFollowing ? 'Unfollow' : 'Follow'}
-                    </button>
+                    {!isFollowing || followRequestSent ? (
+                      <button
+                        className="btn-primary"
+                        onClick={handleFollow}
+                      >
+                        {followRequestSent ? 'Request Sent' : 'Follow'}
+                      </button>
+                    ) : (
+                      <button
+                        className="btn-secondary"
+                        disabled
+                      >
+                        Following
+                      </button>
+                    )}
                     <button
-                      className="btn-secondary"
-                      onClick={() => navigate(`/messages?user=${user._id}`)}
+                      className="btn-primary"
+                      onClick={() => {
+                        if (!isMutual) {
+                          toast.info('You can only chat with users who follow you back.')
+                        } else {
+                          navigate(`/messages?user=${user._id}`)
+                        }
+                      }}
+                      disabled={!isMutual}
                     >
                       Message
                     </button>
@@ -342,6 +394,26 @@ const Profile = () => {
             )}
           </div>
         </div>
+
+        {/* Follow Requests Management (for private own profile) */}
+        {isOwnProfile && user.isPrivate && followRequests.length > 0 && (
+          <div className="mt-8 card p-4">
+            <h3 className="font-semibold mb-2">Follow Requests</h3>
+            <ul className="space-y-3">
+              {followRequests.map(reqUser => (
+                <li key={reqUser._id} className="flex items-center gap-3">
+                  <img src={reqUser.avatar || 'https://ui-avatars.com/api/?name=User&background=random'} alt={reqUser.name} className="w-10 h-10 rounded-full object-cover" />
+                  <div className="flex-1">
+                    <div className="font-medium">{reqUser.name}</div>
+                    <div className="text-xs text-gray-500">@{reqUser.username}</div>
+                  </div>
+                  <button className="btn-primary px-3 py-1 text-xs" onClick={() => handleAcceptRequest(reqUser._id)}>Accept</button>
+                  <button className="btn-secondary px-3 py-1 text-xs" onClick={() => handleRejectRequest(reqUser._id)}>Reject</button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </motion.div>
   )

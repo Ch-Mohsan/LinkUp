@@ -16,6 +16,15 @@ exports.getUserProfile = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Access control for private profiles
+    if (user.isPrivate) {
+      const isSelf = req.user && req.user._id.toString() === user._id.toString();
+      const isMutual = req.user && user.followers.map(f=>f._id.toString()).includes(req.user._id.toString()) && user.following.map(f=>f._id.toString()).includes(req.user._id.toString());
+      if (!isSelf && !isMutual) {
+        return res.status(403).json({ message: 'This profile is private. Only mutual followers can view.' });
+      }
+    }
+
     // Get user's post count
     const postCount = await Post.countDocuments({ 
       author: user._id,
@@ -123,28 +132,47 @@ exports.toggleFollow = async (req, res) => {
         following: false
       });
     } else {
-      // Follow
-      await User.findByIdAndUpdate(req.user._id, {
-        $push: { following: userId }
-      });
-      await User.findByIdAndUpdate(userId, {
-        $push: { followers: req.user._id }
-      });
-
-      // Create notification
-      if (userId !== req.user._id.toString()) {
-        await Notification.create({
-          recipient: userId,
-          sender: req.user._id,
-          type: 'follow',
-          action: 'started following you'
+      // Check if private
+      if (userToFollow.isPrivate) {
+        // If already requested, do not duplicate
+        if (!userToFollow.followRequests.includes(req.user._id)) {
+          await User.findByIdAndUpdate(userId, {
+            $addToSet: { followRequests: req.user._id }
+          });
+          // Create notification for follow request
+          await Notification.create({
+            recipient: userId,
+            sender: req.user._id,
+            type: 'follow_request',
+            action: 'sent you a follow request'
+          });
+        }
+        return res.status(200).json({
+          message: 'Follow request sent',
+          followRequest: true
+        });
+      } else {
+        // Public: follow immediately
+        await User.findByIdAndUpdate(req.user._id, {
+          $push: { following: userId }
+        });
+        await User.findByIdAndUpdate(userId, {
+          $push: { followers: req.user._id }
+        });
+        // Create notification
+        if (userId !== req.user._id.toString()) {
+          await Notification.create({
+            recipient: userId,
+            sender: req.user._id,
+            type: 'follow',
+            action: 'started following you'
+          });
+        }
+        res.status(200).json({ 
+          message: 'User followed',
+          following: true
         });
       }
-
-      res.status(200).json({ 
-        message: 'User followed',
-        following: true
-      });
     }
 
   } catch (error) {
@@ -298,6 +326,63 @@ exports.getSuggestedUsers = async (req, res) => {
     console.error('Get suggested users error:', error);
     res.status(500).json({
       message: 'Error fetching suggested users',
+      error: error.message
+    });
+  }
+};
+
+// Get pending follow requests for the logged-in user
+exports.getFollowRequests = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).populate('followRequests', 'username name avatar');
+    res.status(200).json({ followRequests: user.followRequests });
+  } catch (error) {
+    console.error('Get follow requests error:', error);
+    res.status(500).json({
+      message: 'Error fetching follow requests',
+      error: error.message
+    });
+  }
+};
+
+// Accept or reject a follow request
+exports.respondToFollowRequest = async (req, res) => {
+  try {
+    const { requesterId } = req.params;
+    const { action } = req.body; // 'accept' or 'reject'
+    const user = await User.findById(req.user._id);
+    if (!user.followRequests.includes(requesterId)) {
+      return res.status(400).json({ message: 'No such follow request' });
+    }
+    if (action === 'accept') {
+      // Add each other as followers/following
+      await User.findByIdAndUpdate(req.user._id, {
+        $push: { followers: requesterId },
+        $pull: { followRequests: requesterId }
+      });
+      await User.findByIdAndUpdate(requesterId, {
+        $push: { following: req.user._id }
+      });
+      // Send notification to requester
+      await Notification.create({
+        recipient: requesterId,
+        sender: req.user._id,
+        type: 'follow_accept',
+        action: 'accepted your follow request'
+      });
+      return res.status(200).json({ message: 'Follow request accepted' });
+    } else if (action === 'reject') {
+      await User.findByIdAndUpdate(req.user._id, {
+        $pull: { followRequests: requesterId }
+      });
+      return res.status(200).json({ message: 'Follow request rejected' });
+    } else {
+      return res.status(400).json({ message: 'Invalid action' });
+    }
+  } catch (error) {
+    console.error('Respond to follow request error:', error);
+    res.status(500).json({
+      message: 'Error responding to follow request',
       error: error.message
     });
   }

@@ -13,6 +13,13 @@ exports.sendMessage = async (req, res) => {
       return res.status(404).json({ message: 'Receiver not found' });
     }
 
+    // Check if sender and receiver are mutual followers
+    const sender = await User.findById(req.user._id);
+    const isMutual = sender.following.map(f=>f.toString()).includes(receiverId) && sender.followers.map(f=>f.toString()).includes(receiverId) && receiver.following.map(f=>f.toString()).includes(req.user._id.toString()) && receiver.followers.map(f=>f.toString()).includes(req.user._id.toString());
+    if (!isMutual) {
+      return res.status(403).json({ message: 'You can only chat with users who follow you back.' });
+    }
+
     // Check if sender and receiver are the same
     if (receiverId === req.user._id.toString()) {
       return res.status(400).json({ message: 'Cannot send message to yourself' });
@@ -68,6 +75,13 @@ exports.getConversation = async (req, res) => {
     const otherUser = await User.findById(userId);
     if (!otherUser) {
       return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if current user and other user are mutual followers
+    const currentUser = await User.findById(req.user._id);
+    const isMutual = currentUser.following.map(f=>f.toString()).includes(userId) && currentUser.followers.map(f=>f.toString()).includes(userId) && otherUser.following.map(f=>f.toString()).includes(req.user._id.toString()) && otherUser.followers.map(f=>f.toString()).includes(req.user._id.toString());
+    if (!isMutual) {
+      return res.status(403).json({ message: 'You can only chat with users who follow you back.' });
     }
 
     // Get messages between the two users, filter out those deleted for current user

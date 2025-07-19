@@ -237,12 +237,18 @@ exports.getUserPosts = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-
     const user = await User.findOne({ username });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-
+    // Access control for private profiles
+    if (user.isPrivate) {
+      const isSelf = req.user && req.user._id.toString() === user._id.toString();
+      const isMutual = req.user && user.followers.map(f=>f.toString()).includes(req.user._id.toString()) && user.following.map(f=>f.toString()).includes(req.user._id.toString());
+      if (!isSelf && !isMutual) {
+        return res.status(403).json({ message: 'This user\'s posts are private. Only mutual followers can view.' });
+      }
+    }
     const posts = await Post.find({ 
       author: user._id,
       isPublic: true 
@@ -252,19 +258,16 @@ exports.getUserPosts = async (req, res) => {
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
-
     const total = await Post.countDocuments({ 
       author: user._id,
       isPublic: true 
     });
-
     res.status(200).json({
       posts,
       currentPage: page,
       totalPages: Math.ceil(total / limit),
       hasNextPage: page * limit < total
     });
-
   } catch (error) {
     console.error('Get user posts error:', error);
     res.status(500).json({

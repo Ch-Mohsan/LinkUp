@@ -73,11 +73,11 @@ const Sidebar = ({ onNavClick }) => {
         <div className="p-6 mt-auto border-t border-gray-200 dark:border-gray-800">
           <div className="flex items-center space-x-3 mb-4">
             {user?.avatar ? (
-              <img
+            <img
                 src={user.avatar}
                 alt={user.name}
-                className="w-10 h-10 rounded-full object-cover"
-              />
+              className="w-10 h-10 rounded-full object-cover"
+            />
             ) : (
               <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
                 <UserIcon size={28} className="text-gray-400" />
