@@ -16,11 +16,13 @@ app.use(cors({
       'https://linkup-git-main-mohsan-alis-projects-a2ecac61.vercel.app',
       'https://link-up-n13j-git-main-mohsan-alis-projects-a2ecac61.vercel.app',
       'https://link-up-n13j-1oj5lnthl-mohsan-alis-projects-a2ecac61.vercel.app',
-      'https://link-up-7bgc-git-main-mohsan-alis-projects-a2ecac61.vercel.app'
+      'https://link-up-7bgc-git-main-mohsan-alis-projects-a2ecac61.vercel.app',
+      'http://localhost:3000', // Allow local dev
     ];
     // Allow all Vercel preview URLs for your project
     const vercelPreviewRegex = /^https:\/\/link-up-[\w-]+-mohsan-alis-projects-a2ecac61\.vercel\.app$/;
     if (
+      !origin ||
       allowedOrigins.includes(origin) ||
       vercelPreviewRegex.test(origin)
     ) {
