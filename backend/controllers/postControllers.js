@@ -6,7 +6,7 @@ const Notification = require('../models/Notification');
 exports.createPost = async (req, res) => {
   try {
     const { caption, tags, location } = req.body;
-    const image = req.file ? `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}` : null;
+    const image = req.file ? req.file.path : null;
 
     if (!image) {
       return res.status(400).json({ message: 'Post image is required' });

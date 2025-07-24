@@ -51,8 +51,8 @@ exports.getUserProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const { name, bio, location, website } = req.body;
-    const avatar = req.files && req.files.avatar ? `/uploads/${req.files.avatar[0].filename}` : undefined;
-    const coverImage = req.files && req.files.coverImage ? `/uploads/${req.files.coverImage[0].filename}` : undefined;
+    const avatar = req.files && req.files.avatar ? req.files.avatar[0].path : undefined;
+    const coverImage = req.files && req.files.coverImage ? req.files.coverImage[0].path : undefined;
 
     const updateData = {
       name: name || req.user.name,
@@ -63,11 +63,11 @@ exports.updateProfile = async (req, res) => {
 
     if (avatar) {
       // Always return full URL for avatar
-      updateData.avatar = `${req.protocol}://${req.get('host')}${avatar}`;
+      updateData.avatar = avatar;
     }
 
     if (coverImage) {
-      updateData.coverImage = `${req.protocol}://${req.get('host')}${coverImage}`;
+      updateData.coverImage = coverImage;
     }
 
     const updatedUser = await User.findByIdAndUpdate(
